@@ -1,0 +1,9 @@
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\bin\Release\netcoreapp3.1\PluginFrameworkSample.deps.json
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\bin\Release\netcoreapp3.1\PluginFrameworkSample.dll
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\bin\Release\netcoreapp3.1\PluginFrameworkSample.pdb
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.csprojAssemblyReference.cache
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.AssemblyInfoInputs.cache
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.AssemblyInfo.cs
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.csproj.CoreCompileInputs.cache
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.dll
+C:\Users\kevinsay\Desktop\AzureIoTAgent\PluginFrameworkSample\obj\Release\netcoreapp3.1\PluginFrameworkSample.pdb
