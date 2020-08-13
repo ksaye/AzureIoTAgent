@@ -1,4 +1,4 @@
 {
-  "connectionString": "HostName=ksayestreamhub.azure-devices.net;DeviceId=iotagentWindows;SharedAccessKey=fCrev13PvpEj+jbp+2y4Y5sddShvRgiUa78+8Ue1Q24=",
-  "remoteLoggingConnectionString": "Endpoint=sb://kevinsaydemo1.servicebus.windows.net/;SharedAccessKeyName=iotagentsender;SharedAccessKey=R4WjOQA3jQifWz2ElQW+69k2NGKNpca4IBNJ5YJL920=;EntityPath=azureiotagent"
+  "connectionString": "HostName=ksayestreamhub.azure-devices.net;DeviceId=iotagentWindows;SharedAccessKey=fCrevREMOVED78+8Ue1Q24=",
+  "remoteLoggingConnectionString": "Endpoint=sb://kevinsaydemo1.servicebus.windows.net/;SharedAccessKeyName=iotagentsender;SharedAccessKey=R4WjOQREMOVED5YJL920=;EntityPath=azureiotagent"
 }
