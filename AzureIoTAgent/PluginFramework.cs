@@ -78,32 +78,24 @@ namespace AzureIoTAgent
             _logging.log("Starting PluginFramework");
             _deviceClient = deviceClient;
             _config = config;
-
-            // for some reason, this is not working
-            //_deviceClient.SetDesiredPropertyUpdateCallbackAsync(pluginTWINcallback, null).Wait();
         }
 
-        public async Task ProcessPluginsForever(CancellationToken cancellationToken)
+        public Task ProcessPluginsForever(CancellationToken cancellationToken)
         {
-            _logging.log("ProcessPluginsForever");
+            _logging.log("ProcessPluginsLoop");
             while (!cancellationToken.IsCancellationRequested)
             {
-                //await _deviceClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("a")));
-                await pluginTWINcallback((await _deviceClient.GetTwinAsync()).Properties.Desired, null);
-                Thread.Sleep(1000 * 60);
+                pluginTWINcallback((_deviceClient.GetTwinAsync().Result).Properties.Desired, null).Wait();
+                _logging.log("ProcessPluginsForever loop");
+                Thread.Sleep(1000 * 60 * 3);      // every 1 hours reprocess the TWIN
             }
-        }
 
-        public static Task WhenCancelled(CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
+            return Task.CompletedTask;
         }
 
         public async Task<Task> pluginTWINcallback(TwinCollection desiredProperties, object userContext)
         {
-            //_logging.log("pluginTWINcallback start");
+            _logging.log("pluginTWINcallback start");
             // because we need the entire TWIN, can not use desiredProperties because it could be a PATCH
             JObject twinJobject = JObject.Parse((await _deviceClient.GetTwinAsync()).Properties.Desired.ToJson());
 //            _logging.log("TWIN Received: " + twinJobject.ToString(formatting: Formatting.None));
@@ -114,7 +106,6 @@ namespace AzureIoTAgent
             }
 
             _twin = twinJobject["PluginFramework"].ToObject<JArray>();
-//            _logging.log("running processes are: " + string.Join(",", _runningPlugins.ToArray()));
 
             foreach (JObject pluginObject in _twin)
             {
@@ -204,9 +195,21 @@ namespace AzureIoTAgent
         {
             _logging.log("Downloading " + plugin.downloadFileURL + " to file " + plugin.downloadFile);
             // future iterations should consider: https://www.codeproject.com/script/Articles/ViewDownloads.aspx?aid=18243
-            WebClient webClient = new WebClient();
-            webClient.DownloadFile(new System.Uri(plugin.downloadFileURL), plugin.downloadFile);
-            webClient.Dispose();
+
+            for (int c = 1; c <= 10; c++)
+            {
+                try
+                {
+                    WebClient webClient = new WebClient();
+                    webClient.DownloadFile(new System.Uri(plugin.downloadFileURL), plugin.downloadFile);
+                    webClient.Dispose();
+                }
+                catch (Exception er)
+                {
+                    _logging.log("downloadPayload() error: " + er.ToString(), error);
+                }
+                Thread.Sleep(1000 * 5);
+            }
 
             if (plugin.fileSha1Hash == getSHA1(plugin.downloadFile))
             {

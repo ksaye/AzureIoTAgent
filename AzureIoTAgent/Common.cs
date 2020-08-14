@@ -18,8 +18,9 @@ namespace AzureIoTAgent
         static DeviceClient deviceClient;
         static JObject config;
         static Authenticate authenticate;
+        static PluginFramework pf;
 
-        static int reportTWINIntervalMinutes = 60 * 8;          // should add a TWIN property to address this
+        static int reportTWINIntervalMinutes = 60 * 8;          // should add a TWIN property to address this?
 
         static async Task Main(string[] args)
         {
@@ -37,17 +38,23 @@ namespace AzureIoTAgent
 
             logging = new CommonLogging(config);
             authenticate = new Authenticate(logging);
-            
-            // should add auto provision functions here  considerging a single method with multiple parameters
-            deviceClient = await authenticate.AuthenticateWithConnectionString(config["connectionString"].ToString(), TransportType.Mqtt);
-            deviceClient.SetConnectionStatusChangesHandler(connectionChangeHandler);
 
-            logging.setDeviceClient(deviceClient);
+            // should add auto provision functions here  considerging a single method with multiple parameters
+            deviceClient = await authenticate.AuthenticateWithConnectionString(config["connectionString"].ToString());
+            deviceClient.SetConnectionStatusChangesHandler(connectionChangeHandler);
 
             await deviceClient.SetMethodHandlerAsync("autoUpdate", autoUpdateHandler, null);
             await deviceClient.SetMethodHandlerAsync("restart", restartHandler, null);
-            await reportConfigFile();
 
+            logging.setDeviceClient(deviceClient);
+
+            pf = new PluginFramework(deviceClient, config, logging);
+            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(pf.pluginTWINcallback, null);
+            // get the initial TWIN
+            pf.pluginTWINcallback(null, null);
+
+            await reportConfigFile();
+            
             // start a thread for Remote Stream connections
             // here is a sample client: https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Quickstarts/device-streams-proxy/service
             Thread remoteStream = new Thread(remoteStreamThread);
@@ -58,10 +65,12 @@ namespace AzureIoTAgent
 
             Thread certificateManagement = new Thread(certificateManagementThread);
             //certificateManagement.Start();
-
-            Thread pluginManagement = new Thread(pluginManagementThread);
-            pluginManagement.Start();
-
+            
+            // need to evaluate if this is needed.  if starting offline (disconnected), and then reconnect
+            //                                      do we get a TWIN update?  perhaps add the 'get twin' to the device reconnect logic
+            //Thread pluginManagement = new Thread(pluginManagementThread);
+            //pluginManagement.Start();
+            
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
@@ -72,17 +81,14 @@ namespace AzureIoTAgent
         private static void connectionChangeHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             logging.log("ConnectionStatus: " + status.ToString() + " " + reason.ToString());
-        }
-
-        private static Task aa(TwinCollection desiredProperties, object userContext)
-        {
-            logging.log("aa");
-            return Task.CompletedTask;
+            if (status == ConnectionStatus.Disconnected  || status == ConnectionStatus.Disabled)
+            {
+                logging.log(String.Format("ConnectionStatus: {0} {1}", status, reason), 1);
+            }
         }
 
         private static async void pluginManagementThread()
         {
-            PluginFramework pf = new PluginFramework(deviceClient, config, logging);
             await pf.ProcessPluginsForever(new CancellationToken());
         }
 
@@ -145,11 +151,13 @@ namespace AzureIoTAgent
             return tcs.Task;
         }
 
-        static async Task reportHardware()
+        static Task reportHardware()
         {
             logging.log("reportHardware()");
 
             JObject hardwareTWIN = new JObject();
+
+            hardwareTWIN["reportTime"] = DateTime.Now;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -221,7 +229,9 @@ namespace AzureIoTAgent
             }
 
             TwinCollection twinCollection = new TwinCollection(hardwareTWIN.ToString());
-            await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
+            deviceClient.UpdateReportedPropertiesAsync(twinCollection).Wait();
+
+            return Task.CompletedTask;
         }
 
         static string runCommand(string command, string parameters)
@@ -246,14 +256,16 @@ namespace AzureIoTAgent
             return output.Replace("\n", "").Replace("\r", "");
         }
 
-        static async Task reportConfigFile()
+        static Task reportConfigFile()
         {
             // report the configFile as a TWIN
             JObject reportConfig = new JObject
             {
                 ["configFile"] = config
             };
-            await deviceClient.UpdateReportedPropertiesAsync(new TwinCollection(reportConfig.ToString()));
+            deviceClient.UpdateReportedPropertiesAsync(new TwinCollection(reportConfig.ToString())).Wait();
+
+            return Task.CompletedTask;
         }
     }
 }

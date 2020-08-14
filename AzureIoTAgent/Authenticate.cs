@@ -76,7 +76,7 @@ namespace AzureIoTAgent
             return deviceClient;
         }
 
-        public async Task<DeviceClient> AuthenticateWithConnectionString(string connectionString, TransportType transportType)
+        public async Task<DeviceClient> AuthenticateWithConnectionString(string connectionString, TransportType transportType = TransportType.Amqp)
         {
             _logging.log(String.Format("AuthenticateWithConnectionString({0}, {1})", connectionString, transportType.ToString()));
 
